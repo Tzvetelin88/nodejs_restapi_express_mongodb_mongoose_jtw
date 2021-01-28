@@ -1,10 +1,8 @@
 # nodejs_restapi_with_mongodb_mongoose_jtw
 - Backend achieved by Nodejs
-- Fronend achieved by Reactjs.
+- Frontend achieved by Reactjs. (p.s. React Application will be used to access backend. https://github.com/Tzvetelin88/reactjs_hooks_saga_redux)
 
 Nodejs RestAPI application. Using Express, Mongoose, JWT auth. 
-
-p.s. React Application will be used to access backend. https://github.com/Tzvetelin88/reactjs_hooks_saga_redux
 
 ## Inside:
 
