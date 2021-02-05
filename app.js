@@ -1,12 +1,24 @@
-const path = require('path');
+const https = require('https');
+const dotenv = require('dotenv');
 
+const path = require('path');
+const fs = require('fs');
 const express = require('express');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 const multer = require('multer');
+const { v4: uuidv4 } = require('uuid');
 
 const feedRoutes = require('./routes/feed');
 const authRoutes = require('./routes/auth');
+
+const helmet = require('helmet');
+const morgan = require('morgan');
+
+dotenv.config();
+
+const privateKey = fs.readFileSync('server.key');
+const certificate = fs.readFileSync('server.cert');
 
 const app = express();
 
@@ -15,7 +27,7 @@ const fileStorage = multer.diskStorage({
     cb(null, 'images');
   },
   filename: (req, file, cb) => {
-    cb(null, new Date().toISOString() + '-' + file.originalname);
+    cb(null, uuidv4() + '-' + file.originalname);
   }
 });
 
@@ -31,6 +43,11 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
+const logStream = fs.createWriteStream(path.join(__dirname, 'access.log'), { flags: 'a' })
+
+app.use(helmet());
+app.use(morgan('combined', { stream: logStream }));
+
 // app.use(bodyParser.urlencoded()); // x-www-form-urlencoded <form>
 app.use(bodyParser.json()); // application/json
 app.use(
@@ -40,10 +57,7 @@ app.use('/images', express.static(path.join(__dirname, 'images')));
 
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader(
-    'Access-Control-Allow-Methods',
-    'OPTIONS, GET, POST, PUT, PATCH, DELETE'
-  );
+  res.setHeader('Access-Control-Allow-Methods', 'OPTIONS, GET, POST, PUT, PATCH, DELETE');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   next();
 });
@@ -59,11 +73,14 @@ app.use((error, req, res, next) => {
   res.status(status).json({ message: message, data: data });
 });
 
+mongoose.set('useNewUrlParser', true);
+mongoose.set('useUnifiedTopology', true);
+
 mongoose
-  .connect(
-    '<mongoose_conn>'
-  )
+  .connect(process.env.MONGODB_URL)
   .then(result => {
-    app.listen(8080);
+    https
+      .createServer({ key: privateKey, cert: certificate }, app)
+      .listen(process.env.PORT || 8080);
   })
   .catch(err => console.log(err));
